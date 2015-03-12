@@ -1,0 +1,175 @@
+This file contains information for running the CodFS-Explorer. If you want to run CodFS, please read the README file of CodFS
+
+The src/ directory contains the source code and related files of CodFS-Explorer
+The root directory contains this README file, change log and a sql file used in deployment
+
+** Before running CodFS-Explorer, please run CodFS **
+
+Deploying CodFS-Explorer:
+(The following lines can be found in the developement document)
+------------------------------------------------------------------------------------
+Install apache web server
+$ sudo apt-get install apache2
+
+Install PHP5
+$ sudo apt-get install php5
+
+Install PHP5 module for apache server
+$ sudo apt-get install libapache2-mod-php5
+
+Install package manager “pecl” for PHP
+$ sudo apt-get install php-pear php5-dev
+
+Install MongoDB module for PHP
+$ sudo pecl install mongo
+(Note: there is bug with pecl and php version 5.5 with Ubuntu 14.04 32bits, which will display the following error if you run the above command:
+
+could not extract the package.xml file from "/build/buildd/php5-5.5.9+dfsg/pear-build-download/mongo-1.5.1.tgz"
+Download of "pecl/mongo" succeeded, but it is not a valid package archive
+Error: cannot download "pecl/mongo"
+Download failed
+install failed
+
+Reference: Reference: https://bugs.php.net/bug.php?id=67075
+
+Input the following command to solve the problem:
+$ sudo pecl install --nocompress mongo
+)
+------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------
+Edit php.ini (/etc/php5/apache2) 
+Add the following line:
+extension=mongo.so
+
+Configure web server
+Change the following value of the following key field in /etc/php5/apache2
+- upload_max_filesize
+	* Maximum allowed size for files to be uploaded. 
+	* Set the value more than the one uploading chunk size
+
+- post_max_size
+	* Maximum size of POST data that PHP accepts
+	* Set the value more than the one uploading chunk size. Set the value to 0 if you want to ignore the limit
+
+- max_input_time
+	* Maximum amount of time each script may spend parsing request data.
+	* If you found the script does not have enough time to finish, you need to raise the value.
+
+- memory_limit 
+	* Maximum amount of memory a script may consume
+	* Increase the value if you found it not enough during file upload
+------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------
+Install MySQL and MySQL module
+$sudo apt-get install mysql-server mysql-client
+You will be asked to provide a password for the MySQL root user 
+
+Install modules for MySQL database connections directly from PHP scripts
+$ sudo apt-get install php5-mysql
+
+Configure MySQL (The following can be performed using phpMyAdmin)
+Login to MySQL as root
+$ mysql -u root -p
+The shell will prompt you to input password
+
+Create user “codfs” (inside < > is required and to be customized by user)
+$ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, FILE, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, SHOW VIEW ON *.* TO 'codfs'@'localhost' IDENTIFIED BY "<password>";
+
+Create database “codfs”
+$ CREATE database codfs;
+
+Grant Privileges to user “codfs” to access database “codfs”
+$ GRANT ALL PRIVILEGES ON `codfs`.* TO 'codfs'@'localhost' WITH GRANT OPTION;
+
+Import the default table, log out from mysql by typing exit or press ctrl-d
+$ mysql -u codfs --password="[password]" codfs < codfs.sql
+* By default, the table “user” contains a default user called “test” with password “test”
+
+To confirm the tables had been imported into database "codfs", log in mysql as user "codfs" and check the tables:
+$ show tables in codfs;
+
+Install phpmyadmin (optional)
+$ sudo apt-get install phpmyadmin
+During the installation, select “apache2” as the web server
+Select yes when asked whether to use “dbconfig-common” to set up the database
+You will be prompted for your database administrator's password
+You will then be asked to choose and confirm a password for the phpMyAdmin application itself
+------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------
+Configure web server user
+<argument>: required argument
+[argument] : optional argument
+
+(Change the login shell of the web server user from “nologin” shell to other login shell, such as bash or zsh or other shells before performing the following operation)
+
+Generate a ssh key for the web user server
+$ ssh-keygen
+
+Gather all the ssh public key of the machine running CodFS
+$ ssh-keyscan <remote machine>
+
+Use locally available keys to authorize logins on a remote machine
+$ ssh-copy-id [-i [key]] <remote machine>
+
+The paths containing CodFS in all the remote machines must be the same.
+i.e. If machine1 and machine2 have CodFS components and the path of the CodFS components in machine 1 is in /home/user1/codfs, then the path of the CodFS components in machine2 must also be /home/user1/codfs
+------------------------------------------------------------------------------------
+
+Restart the apache server
+$ sudo service apache2 restart
+
+------------------------------------------------------------------------------------
+The following variables must be changed to suit your environment:
+PHP file configuration:
+
+* config.php
+	- $chunk_size
+		* Size which each read/write file operation is performed
+	- $des_dir
+		* Absolute path of mountdir, must be accessible by the web server
+	- $forb_user
+		* Username that is forbidden to use, as the username may have collision with table name
+	- $mds_proc
+		* The process name, path to run the process. The path of log file must be changed
+	- $monitor_proc
+		* The process name, path to run the process. The path of log file must be changed
+	- $osd_proc
+		* The process name, path to run the process. The path of log file must be changed
+	- $osd_interface
+		* Interface of osd used for communicating with other components
+	- $user
+		* Username to start the CodFS, not necessarily to be the web server user
+	- $mongodb_host
+		* The ip address where the mongodb runs
+	- $mongo_port
+		* The port where the mongodb runs
+	- $mongo_codfs_db
+		* name of database that stores the codfs information in mongodb
+	- $db_user
+		* Username of MySQL
+	- $db_passwd
+		* Password of MySQL
+	- $db_host
+		* IP that runs the MySQL
+	- $db_name
+		* Database name used in MySQL
+------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------
+ Some optional configurable variable:
+
+ * upload.js
+ 	- CHUNK_SIZE
+ 		* The size of chunk uploaded each time to web server
+
+ * config.php
+ 	- $chunk_size
+		*  Chunk size for reading the file (in bytes)
+	-  $ssh_timeout
+ 		* Number of seconds before ssh declares the command running via ssh has reached timeout
+------------------------------------------------------------------------------------
+Issue:
+- The recovery dection function had been disabled in js/main.js due to poor stability, you can enable by remove the comment of "server_health_main()" in main.js
