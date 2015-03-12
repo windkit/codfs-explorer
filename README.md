@@ -13,6 +13,10 @@ detailed instruction of setup.
 Release 1.0 (01-2015)
 Initial Release
 
+Demo Video
+=====
+A Demo Video is uploaded at http://www.youtube.com/watch?v=PLcKwEYyTaY
+
 Contact
 =================
 Patrick P. C. Lee (http://www.cse.cuhk.edu.hk/~pclee)
